@@ -16,6 +16,6 @@ int display_frame_limit(void);
 void *display_load_surface(const char *path);
 void display_unload_surface(void *data);
 void display_blit_surface(void *data, struct clip *clip, int x, int y);
-void display_background(int offset_x, int offset_y);
+void display_background(void);
 
 #endif /* _DISPLAY_H_ */
