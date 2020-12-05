@@ -133,24 +133,3 @@ void display_blit_surface(void *data, struct clip *clip, int x, int y)
 
 	SDL_BlitSurface(surface, clip ? &c : NULL, ctx.screen, &r);
 }
-
-void display_background(int offset_x, int offset_y)
-{
-	SDL_Rect r;
-	int i, j;
-
-	SDL_FillRect(ctx.screen, NULL,
-		     SDL_MapRGB(ctx.screen->format, 0, 0, 128));
-
-	for (j = offset_y; j < SCREEN_H + 16; j += 16) {
-		for (i = offset_x; i < SCREEN_W + 16; i += 16) {
-			r.x = i;
-			r.y = j;
-			r.w = 1;
-			r.h = 1;
-
-			SDL_FillRect(ctx.screen, &r,
-				     SDL_MapRGB(ctx.screen->format, 0, 0, 224));
-		}
-	}
-}
