@@ -5,28 +5,6 @@
 
 #define DATA_PATH	"data/"
 
-static void trail_logic(struct object *obj, void *unused)
-{
-	(void)unused;
-
-	if (obj->remove)
-		return;
-
-	if (--obj->ttl <= 0)
-		obj->remove = 1;
-}
-
-static void explosion_logic(struct object *obj, void *unused)
-{
-	(void)unused;
-
-	if (obj->remove)
-		return;
-
-	if (--obj->ttl <= 0)
-		obj->remove = 1;
-}
-
 static void missile_logic(struct object *obj, void *data)
 {
 	struct object *target = data;
@@ -41,11 +19,9 @@ static void missile_logic(struct object *obj, void *data)
 
 	target_angle = atan2(y, x) * DEGREE_MAX / 2 / PI;
 
-	obj->radar_angle = target_angle;
-
 	target_angle -= obj->angle;
 
-#if 1
+#if 0
 	if (target_angle >= DEGREE_MAX / 2 &&
 	    obj->turn_angle > -obj->tmp->step)
 			--obj->turn_angle;
@@ -108,26 +84,6 @@ struct object_template obj_template[OBJ_COUNT] = {
 		.r = 3,
 		.step = 3,
 		.speed = 2.5,
-	},
-	{
-		.logic = trail_logic,
-		.data = DATA_PATH "trail.bmp",
-		.tiles = 1,
-		.tile_w = 3,
-		.tile_h = 3,
-		.row_w = 1,
-		.r = 1,
-		.ttl = 2,
-	},
-	{
-		.logic = explosion_logic,
-		.data = DATA_PATH "explosion.bmp",
-		.tiles = 1,
-		.tile_w = 5,
-		.tile_h = 5,
-		.row_w = 1,
-		.r = 3,
-		.ttl = 1,
 	},
 };
 
