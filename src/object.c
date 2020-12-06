@@ -41,11 +41,8 @@ static void missile_logic(struct object *obj, void *data)
 
 	target_angle = atan2(y, x) * DEGREE_MAX / 2 / PI;
 
-	obj->radar_angle = target_angle;
-
 	target_angle -= obj->angle;
 
-#if 1
 	if (target_angle >= DEGREE_MAX / 2 &&
 	    obj->turn_angle > -obj->tmp->step)
 			--obj->turn_angle;
@@ -54,12 +51,6 @@ static void missile_logic(struct object *obj, void *data)
 			++obj->turn_angle;
 
 	obj->angle += obj->turn_angle / 2;
-#else
-	if (target_angle >= DEGREE_MAX / 2)
-		obj->angle -= obj->tmp->step;
-	else if (target_angle != obj->angle)
-		obj->angle += obj->tmp->step;
-#endif
 
 velocity:
 	obj->vx = cosine[obj->angle] * obj->tmp->speed;
