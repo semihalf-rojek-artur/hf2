@@ -15,8 +15,6 @@ enum object_type {
 	OBJ_MISSILE_RED,
 	OBJ_MISSILE_BLUE,
 	OBJ_MISSILE_YELLOW,
-	OBJ_TRAIL,
-	OBJ_EXPLOSION,
 	OBJ_COUNT
 };
 
@@ -29,7 +27,6 @@ struct object_template {
 	int tile_h;
 	int row_w;
 	int r;
-	int ttl;
 	int step;
 	float speed;
 };
@@ -38,14 +35,11 @@ struct object {
 	struct object_template *tmp;
 	struct list_head elem;
 	int remove;
-	int ttl;
 	float x;
 	float y;
 	float vx;
 	float vy;
 	uint8_t angle;
-	uint8_t radar_angle;
-	uint8_t prev_angle;
 	int8_t turn_angle;
 };
 
