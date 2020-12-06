@@ -17,11 +17,7 @@ struct game_ctx {
 	struct list_head trail_list;
 	struct image *font;
 	struct image *overlay;
-	struct image *blip;
 	long ticks;
-	long cur_time;
-	long best_time;
-	int penalty;
 };
 
 static int game_load_templates(void)
@@ -53,16 +49,6 @@ static void game_unload_templates(void)
 	}
 }
 
-static void game_reset(struct prog_ctx *ctx)
-{
-	struct game_ctx *game = ctx->state_ctx;
-
-	game->ticks = 0;
-	game->penalty = 0;
-	game->player.remove = 0;
-	game->player.prev_angle = game->player.angle;
-}
-
 static void game_load(struct prog_ctx *ctx)
 {
 	struct game_ctx *game;
@@ -76,7 +62,6 @@ static void game_load(struct prog_ctx *ctx)
 	game->font = font_load("data/font.bmp", 8, 8);
 	game->overlay = image_load("data/overlay.bmp", 1,
 				   SCREEN_W, SCREEN_H, 1);
-	game->blip = image_load("data/blip.bmp", 3, 7, 7, 3);
 
 	rc = game_load_templates();
 	if (rc) {
@@ -93,8 +78,6 @@ static void game_load(struct prog_ctx *ctx)
 	LIST_ADD(&game->obj_list, &game->player.elem);
 
 	LIST_INIT(&game->trail_list);
-
-	game_reset(ctx);
 }
 
 static void game_unload(struct prog_ctx *ctx)
@@ -119,7 +102,6 @@ static void game_unload(struct prog_ctx *ctx)
 
 	game_unload_templates();
 
-	image_unload(game->blip);
 	image_unload(game->overlay);
 	font_unload(game->font);
 
@@ -166,7 +148,6 @@ static void game_logic(struct prog_ctx *ctx)
 	struct list_head *elem, *elem2, *next;
 	enum object_type obj_type, obj2_type;
 	struct object *obj, *obj2;
-	uint8_t angle_tmp;
 
 	/* Clean up objects flagged in the previous frame. */
 	LIST_FOREACH_SAFE(&game->trail_list, elem, next) {
@@ -181,7 +162,7 @@ static void game_logic(struct prog_ctx *ctx)
 
 		if (obj->remove) {
 			if (obj == &game->player)
-				game_reset(ctx);
+				obj->remove = 0;
 			else
 				LIST_REMOVE(elem);
 		}
@@ -189,9 +170,6 @@ static void game_logic(struct prog_ctx *ctx)
 
 	/* Increment game time. */
 	++game->ticks;
-	game->cur_time = game->ticks;
-	if (game->best_time < game->cur_time)
-		game->best_time = game->cur_time;
 
 	/* Handle player input. */
 	if (ctx->input.key[KEY_BACK]) {
@@ -220,23 +198,6 @@ static void game_logic(struct prog_ctx *ctx)
 	else if (!(game->ticks % (TICKS_SEC * 5)))
 		game_spawn_random(&game->obj_list, OBJ_MISSILE_RED,
 				  &game->player, 400);
-
-	/* Punish the player for constantly flying straight. */
-	angle_tmp = game->player.angle - (game->player.prev_angle -
-		    PLR_PENALTY_RANGE / 2);
-
-	if (angle_tmp < PLR_PENALTY_RANGE) {
-		if (++game->penalty >= TICKS_SEC * PLR_PENALTY_TIME) {
-			game_spawn(&game->obj_list, OBJ_MISSILE_BLUE,
-				   &game->player, 400, game->player.angle);
-
-			game->penalty = 0;
-			game->player.prev_angle = game->player.angle;
-		}
-	} else {
-		game->penalty = 0;
-		game->player.prev_angle = game->player.angle;
-	}
 
 	/* Move objects. */
 	LIST_FOREACH(&game->obj_list, elem) {
@@ -305,8 +266,7 @@ static void game_display(struct prog_ctx *ctx)
 	struct game_ctx *game = ctx->state_ctx;
 	struct list_head *elem;
 	struct object *obj;
-	char timer_txt[16];
-	int angle, tile, radius, cam_x, cam_y, x, y;
+	int tile, cam_x, cam_y, x, y;
 
 	display_background(-FMOD(game->player.x, BACKGROUND_DIV),
 			   -FMOD(game->player.y, BACKGROUND_DIV));
@@ -314,15 +274,8 @@ static void game_display(struct prog_ctx *ctx)
 	cam_x = game->player.x + game->player.tmp->r - SCREEN_W / 2;
 	cam_y = game->player.y + game->player.tmp->r - SCREEN_H / 2;
 
-	/* Display visible objects. */
 	LIST_FOREACH(&game->trail_list, elem) {
 		obj = LIST_ITEM(elem, struct object, elem);
-
-		radius = distance(obj->x, obj->y,
-				   game->player.x, game->player.y);
-
-		if (radius > RADAR_RADIUS)
-			continue;
 
 		x = obj->x + obj->tmp->r - (obj->tmp->tile_w / 2) - cam_x;
 		y = obj->y + obj->tmp->r - (obj->tmp->tile_h / 2) - cam_y;
@@ -332,12 +285,6 @@ static void game_display(struct prog_ctx *ctx)
 
 	LIST_FOREACH(&game->obj_list, elem) {
 		obj = LIST_ITEM(elem, struct object, elem);
-
-		radius = distance(obj->x, obj->y,
-				   game->player.x, game->player.y);
-
-		if (radius > RADAR_RADIUS)
-			continue;
 
 		x = obj->x + obj->tmp->r - (obj->tmp->tile_w / 2) - cam_x;
 		y = obj->y + obj->tmp->r - (obj->tmp->tile_h / 2) - cam_y;
@@ -349,41 +296,6 @@ static void game_display(struct prog_ctx *ctx)
 	}
 
 	image_display(game->overlay, 0, 0, 0);
-
-	/* Display radar blips for objects outside of the visible area. */
-	LIST_FOREACH(&game->obj_list, elem) {
-		obj = LIST_ITEM(elem, struct object, elem);
-
-		radius = distance(obj->x, obj->y,
-				   game->player.x, game->player.y);
-
-		if (radius <= RADAR_RADIUS)
-			continue;
-
-		angle = MOD(obj->radar_angle - (DEGREE_MAX / 2), DEGREE_MAX);
-		x = (game->player.x + game->player.tmp->r + RADAR_RADIUS *
-		     cosine[angle]) - (obj->tmp->tile_w / 2) - cam_x;
-		y = game->player.y + game->player.tmp->r + RADAR_RADIUS *
-		    sine[angle] - (obj->tmp->tile_h / 2) - cam_y;
-
-		image_display(game->blip, object_get_type(obj) - 1, x, y);
-	}
-
-	/* Display game timer. */
-	snprintf(timer_txt, 15, "%02u'%02u\"%02u",
-		 (unsigned int)game->cur_time / SCREEN_FPS / TICKS_SEC,
-		 (unsigned int)game->cur_time / SCREEN_FPS % TICKS_SEC,
-		 (unsigned int)game->cur_time % SCREEN_FPS * 1000 / 600);
-	font_display(timer_txt, 5, 20, game->font);
-
-	if (game->cur_time == game->best_time)
-		return;
-
-	snprintf(timer_txt, 15, "%02u'%02u\"%02u",
-		 (unsigned int)game->best_time / SCREEN_FPS / TICKS_SEC,
-		 (unsigned int)game->best_time / SCREEN_FPS % TICKS_SEC,
-		 (unsigned int)game->best_time % SCREEN_FPS * 1000 / 600);
-	font_display(timer_txt, 5, 10, game->font);
 }
 
 struct program_state game_state = {
