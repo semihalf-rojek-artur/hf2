@@ -45,7 +45,6 @@ struct object {
 	float vy;
 	uint8_t angle;
 	uint8_t radar_angle;
-	uint8_t prev_angle;
 	int8_t turn_angle;
 };
 
