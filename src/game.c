@@ -87,6 +87,7 @@ static void game_load(struct prog_ctx *ctx)
 	input_set_default_map(&ctx->input);
 
 	game->player.tmp = &obj_template[OBJ_PLAYER];
+	game->player.angle = 192;
 
 	LIST_INIT(&game->obj_list);
 	LIST_ADD(&game->obj_list, &game->player.elem);
@@ -135,8 +136,8 @@ static void game_spawn(struct list_head *list, enum object_type type,
 	obj->tmp = &obj_template[type];
 	obj->ttl = TICKS_SEC * obj->tmp->ttl;
 
-	obj->x = target->x + radius * sine[angle];
-	obj->y = target->y + radius * cosine[angle];
+	obj->x = target->x + radius * cosine[angle];
+	obj->y = target->y + radius * sine[angle];
 	obj->angle = angle - (DEGREE_MAX / 2);
 
 	LIST_ADD(list, &obj->elem);
@@ -203,8 +204,8 @@ static void game_logic(struct prog_ctx *ctx)
 	if (ctx->input.key[KEY_RIGHT])
 		game->player.angle = game->player.angle + 3;
 
-	game->player.vx = sine[game->player.angle] * game->player.tmp->speed;
-	game->player.vy = cosine[game->player.angle] * game->player.tmp->speed;
+	game->player.vx = cosine[game->player.angle] * game->player.tmp->speed;
+	game->player.vy = sine[game->player.angle] * game->player.tmp->speed;
 
 	/* Spawn missiles at specified time intervals. */
 	if (!(game->ticks % (TICKS_SEC * 60)))
@@ -363,9 +364,9 @@ static void game_display(struct prog_ctx *ctx)
 
 		angle = MOD(obj->radar_angle - (DEGREE_MAX / 2), DEGREE_MAX);
 		x = (game->player.x + game->player.tmp->r + RADAR_RADIUS *
-		     sine[angle]) - (obj->tmp->tile_w / 2) - cam_x;
+		     cosine[angle]) - (obj->tmp->tile_w / 2) - cam_x;
 		y = game->player.y + game->player.tmp->r + RADAR_RADIUS *
-		    cosine[angle] - (obj->tmp->tile_h / 2) - cam_y;
+		    sine[angle] - (obj->tmp->tile_h / 2) - cam_y;
 
 		image_display(game->blip, object_get_type(obj) - 1, x, y);
 	}
