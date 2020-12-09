@@ -40,7 +40,6 @@ static void missile_logic(struct object *obj, void *data)
 	y = (target->y + target->tmp->r) - (obj->y + obj->tmp->r);
 
 	target_angle = atan2(y, x) * DEGREE_MAX / 2 / PI;
-	target_angle += QUADRANT; /* Shift atan2 result by one quadrant. */
 
 	obj->radar_angle = target_angle;
 
@@ -63,8 +62,8 @@ static void missile_logic(struct object *obj, void *data)
 #endif
 
 velocity:
-	obj->vx = sine[obj->angle] * obj->tmp->speed;
-	obj->vy = cosine[obj->angle] * obj->tmp->speed;
+	obj->vx = cosine[obj->angle] * obj->tmp->speed;
+	obj->vy = sine[obj->angle] * obj->tmp->speed;
 }
 
 struct object_template obj_template[OBJ_COUNT] = {

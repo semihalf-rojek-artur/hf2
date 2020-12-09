@@ -7,7 +7,6 @@
 #define FMOD(a, b)	(fmodf(fmodf((a), (b)) + (b), (b)))
 #define PI		3.14159265358979323846
 #define DEGREE_MAX	256
-#define	QUADRANT	(DEGREE_MAX / 4)
 
 extern const float sine[DEGREE_MAX];
 extern const float cosine[DEGREE_MAX];
